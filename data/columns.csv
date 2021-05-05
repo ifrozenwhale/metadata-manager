@@ -1,0 +1,4 @@
+table_schema,table_name,column_name,ordinal_position,default_value,nullable,data_type,max_char_length,auto_increment,column_key
+test_db,info,sid,1,,False,int,11,True,primary
+test_db,info,name,2,,True,varchar,40,False,
+test_db,info,gender,3,null,True,int,,False,

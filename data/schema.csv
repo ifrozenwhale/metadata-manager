@@ -1,0 +1,2 @@
+db_name,charset,collate
+test_db,utf8,utf8_general_ci
