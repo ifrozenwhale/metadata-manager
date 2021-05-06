@@ -5,6 +5,13 @@ import sqlparse
 from sqlparse.sql import Parenthesis
 import time
 
+pd.set_option('display.max_columns', None)
+# 显示所有行
+pd.set_option('display.max_rows', None)
+# 设置value的显示长度为100，默认为50
+pd.set_option('max_colwidth', 200)
+pd.set_option('display.width', 5000)
+
 
 def get_now_time():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -80,6 +87,7 @@ def update(table_name, column_name, column_value, where_key, where_value):
     df.to_csv(f'./data/{table_name}.csv', index=False)
     return True
 
+
 def proc_create_db(tokens):
     """
     CREATE DATABASE <数据库名>
@@ -88,6 +96,7 @@ def proc_create_db(tokens):
     :param tokens
     :return:
     """
+
     db_name = tokens[2]
     try:
         charset_name = tokens.index('set')
@@ -103,13 +112,13 @@ def proc_create_db(tokens):
     ret = insert('schema', data, unique_columns=['db_name'], unique_values=[db_name])
     if not ret:
         error(f"db [{db_name}]] already exists!")
-    print("[INFO] create database successfully")
+    else:
+        print("[INFO] create database successfully")
 
 
 def error(info=None):
     if info:
         print('[ERROR]', info)
-    exit(0)
 
 
 def in_list(key, df):
@@ -143,7 +152,8 @@ def proc_create_table(db_name, tokens):
             if stack[-1] == '(':
                 stack.pop()
             else:
-                error()
+                error("[ERROR] invalid sql")
+                break
         else:
             column_pos += 1
 
@@ -187,6 +197,7 @@ def proc_create_table(db_name, tokens):
 
     if in_list(head_data, df):
         error(f"db [{db_name}] table [{table_name}] already exists!")
+        return
 
     # get engin
     try:
@@ -235,6 +246,7 @@ def proc_insert_data(db_name, tokens, insert_op=True):
 
     if len(old_row_time) == 0:
         error(f'db [{db_name}] table [{table_name}] does not exits!')
+        return
 
     # def update(table_name, key, key_value, new_value):
     dt = 1 if insert_op else -1
@@ -252,6 +264,7 @@ def proc_update_data(db_name, tokens):
                  where_value=table_name)
     if not ret:
         error(f'db [{db_name}] table [{table_name}] does not exits!')
+        return
     print("[INFO] update data successfully")
 
 
@@ -273,6 +286,7 @@ def proc_drop(db_name, tokens):
     ret = delete(table_name='columns', key=['table_name', 'column_name'], value=[table_name, column_name])
     if not ret:
         error(f'db [{db_name}] table [{table_name}] column [{column_name}] does not exits!')
+        return
     print("[INFO] drop column successfully")
 
 
@@ -340,6 +354,7 @@ def proc_add_key(db_name, tokens):
                      unique_values=[db_name, index_name, table_name])
         if not ret:
             error(f'db [{db_name}] index [{index_name}] already exits!')
+            return
 
     elif tokens[i] == 'primary':
         #     ADD PRIMARY KEY [<索引类型>] (<列名>,…)
@@ -353,6 +368,7 @@ def proc_add_key(db_name, tokens):
                      unique_values=[db_name, 'PRIMARY', table_name])
         if not ret:
             error(f'db [{db_name}] index [PRIMARY] already exits!')
+            return
 
     print("[INFO] add key successfully")
 
@@ -389,6 +405,7 @@ def proc_change(db_name, tokens):
                  where_value=[db_name, table_name, column_name])
     if not ret:
         error(f'db [{db_name}] table [{table_name}] column [{column_name}] does not exits!')
+        return
 
     print("[INFO] alter table successfully")
 
@@ -411,6 +428,7 @@ def proc_drop_key(db_name, tokens):
     ret = delete('index', key=['table_schema', 'table_name', 'index_name'], value=[db_name, table_name, index_name])
     if not ret:
         error(f'db [{db_name}] table [{table_name}] index [{index_name}] does not exits!')
+        return
     print("[INFO] alter table successfully")
 
 
@@ -435,6 +453,7 @@ def proc_drop_db(tokens):
     ret = delete('schema', key='db_name', value=db_name)
     if not ret:
         error(f'db [{db_name}] does not exits!')
+        return
     delete('columns', key='table_schema', value=db_name)
     delete('tables', key='table_schema', value=db_name)
     delete('index', key='table_schema', value=db_name)
@@ -446,6 +465,7 @@ def proc_drop_table(db_name, tokens):
     ret = delete('tables', key=['table_schema', 'table_name'], value=[db_name, table_name])
     if not ret:
         error(f'db [{db_name}] table [{table_name}] does not exits!')
+        return
     delete('columns', key=['table_schema', 'table_name'], value=[db_name, table_name])
     delete('index', key=['table_schema', 'table_name'], value=[db_name, table_name])
     print("[INFO] drop table successfully")
@@ -483,20 +503,35 @@ def proc_select_data(db_name, tokens):
             where_keys.append(key)
             where_values.append(value)
     data = select(from_table[0], raw_attributes=attributes, where_key=where_keys, where_value=where_values)
-    print(data)
+    if len(data) == 0:
+        print('None')
+    else:
+        print(data)
 
 
+def proc_show(db_name, tokens):
+    if tokens[1] == 'tables':
+        parse(f'select table_name from tables where table_schema={db_name};')
+    elif tokens[1] == 'databases':
+        parse(f'select db_name from schema;')
+    elif tokens[1] == 'columns':
+        parse(f'select * from columns where table_schema={db_name};')
+    elif tokens[1] == 'index':
+        parse(f'select * from index where table_schema={db_name};')
+
+db_name = ''
 def parse(cmd: str):
     import re
     tokens = re.split(r"([ ,();])", cmd.lower().strip())
     tokens = [t for t in tokens if t not in [' ', '', '\n']]
-    db_name = 'test_db'
+    global  db_name
     i = 0
     if tokens[i] == 'use':
         db_name = tokens[i + 1]
         ret = select('schema', ['*'], where_key=['db_name'], where_value=[db_name])
         if len(ret) == 0:
             error(f"[ERROR] database [{db_name}] does not exits")
+            return
 
         print('change database to', db_name)
     if tokens[i] == 'create' and tokens[i + 1] == 'database':
@@ -517,6 +552,10 @@ def parse(cmd: str):
         proc_drop_table(db_name, tokens)
     if tokens[i] == 'select':
         proc_select_data(db_name, tokens)
+    if tokens[i] == 'show':
+        proc_show(db_name, tokens)
+    if tokens[i] == 'database':
+        print(db_name)
 
 
 if __name__ == '__main__':
@@ -561,9 +600,16 @@ if __name__ == '__main__':
     # parse(cmd)
     # info = select('columns', '*')
     # print(info)
+    cmd_list = []
 
     while True:
-        cmd = input("command? ")
-        if cmd == 'quit':
+        cmd = input("command?  ")
+        if cmd == 'quit;':
             break
+        cmd_list.append(cmd)
+        while ';' not in cmd:
+            cmd = input('> ')
+            cmd_list.append(cmd)
+        cmd = " ".join(cmd_list)
+        cmd_list = []
         parse(cmd)
