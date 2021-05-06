@@ -76,7 +76,7 @@
 
 ### Select
 
-- **字段**查询、**where**子句**多条件**查询（dao层实现了，sql解析层还在写）
+- **字段**查询、**where**子句**多条件**查询
 
   ```mysql
   select * from table where table_name='test'
@@ -130,7 +130,7 @@
 - drop一个表的字段
 
   ```mysql
-  ALTER TABLE tasks DROP description;
+  ALTER TABLE tasks DROP COLUMN description;
   ```
 
 #### Add
@@ -138,7 +138,7 @@
 - add一个表的字段
 
   ```mysql
-  ALTER TABLE tasks add new_column int not null;
+  ALTER TABLE tasks ADD COLUMN new_column int not null;
   ```
 
 #### Change
@@ -188,8 +188,16 @@
 - 如优化select，使用如
 
   ```mysql
-  show index from table_name
+  show index;
+  show tables;
+  show columns;
   ```
 
+- 支持多行输入，以;作为结束符
 
+- 存在性检查，错误提示
+
+- 同步删除
+
+- 通过`use database`切换当前数据库
 
