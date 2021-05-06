@@ -1,5 +1,1 @@
 table_schema,table_name,non_unique,index_name,column_name,nullable,index_type
-test_db,tasks,False,primary,task_id,False,btree
-test_ef_db,tasks2133.0,False,primary,task_id,False,btree
-test_ef_db,tasks2133.0,False,primary,task_id,False,hash
-test_my_db,tasks2133.0,False,primary,task_id,False,btree

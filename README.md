@@ -13,12 +13,6 @@
 
   ```csv
   table_schema,table_name,column_name,ordinal_position,default_value,nullable,data_type,max_char_length,auto_increment,column_key
-  test_db,tasks,task_id,1,,,int,,True,PRI
-  test_db,tasks,subject,2,,,varchar,,False,
-  test_db,tasks,start_date,3,,,date,,False,
-  test_db,tasks,end_date,4,,,date,,False,
-  test_db,tasks,description,5,,,varchar,,False,
-  test_db,tasks,new_column,6,,0.0,,,False,
   ```
 
   
