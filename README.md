@@ -31,7 +31,12 @@
   ```
   
 - index表
-
+- views表
+- user_privileges表
+- schema_privileges表
+- table_privileges表
+- constraint表
+- triggers表
 
 
 ## SQL解析进度
