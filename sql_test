@@ -5,5 +5,5 @@ CREATE TABLE tasks2133.0 (
   end_date DATE DEFAULT NULL,
   description VARCHAR(200) DEFAULT NULL,
   PRIMARY KEY (task_id)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB,charset=gbk;
 

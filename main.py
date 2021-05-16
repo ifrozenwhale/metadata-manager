@@ -22,7 +22,11 @@ def select_by_schema(table_name, db_name):
     """
     df = pd.read_csv(f'./data/{table_name}.csv', encoding='utf8')
     df.set_index('table_schema', drop=False, inplace=True)
-    return df.loc[db_name]
+    try:
+        data = df.loc[db_name]
+        return data
+    except KeyError:
+        return None
 
 
 def get_now_time():
@@ -56,11 +60,8 @@ def select(table_name, raw_attributes, where_key=None, where_value=None):
         df.set_index(['table_schema', 'table_name', 'table_name'], inplace=True, drop=False)
     df = df.applymap(lambda x: str(x))
     attributes = df.columns if raw_attributes == ['*'] else raw_attributes
-
     if where_key:
         for key, value in zip(where_key, where_value):
-            # for i in np.arange(1e4):
-            #     tmp = df[df[key].str.lower() == value]
             df = df[df[key].str.lower() == value]
         return df[attributes]
     else:
@@ -158,6 +159,7 @@ def proc_create_table(db_name, tokens):
     :param tokens:
     :return:
     """
+    # print(tokens)
     table_name = tokens[2]
     item_list = []
     stack = []
@@ -233,6 +235,7 @@ def proc_create_table(db_name, tokens):
     try:
         charset = tokens[tokens.index('charset') + 2]
     except ValueError:
+        print("charset=", charset)
         charset = 'utf8'
     try:
         table_type = tokens[tokens.index('table_type') + 2]
@@ -265,10 +268,41 @@ def proc_insert_data(db_name, tokens, insert_op=True):
     :param tokens:
     :return:
     """
-    table_name = tokens[2]
+    root = tokens[0] == "sudo"
+    table_name = tokens[3] if root else tokens[2]
     old_row_time = select('tables', ['table_rows', 'update_time'], where_key=['table_schema', 'table_name'],
                           where_value=[db_name, table_name])
 
+    if root:
+        if insert_op:
+            # really insert data into tables
+            vid = tokens.index('values')
+            vid += 2
+            values = tokens[vid:-2]
+            values = [e for e in values if e not in [',']]
+            insert(table_name, values)
+            print("[INFO] <sudo> insert data successfully")
+            return
+        else:
+            where_data = None
+            where_idx = len(tokens)
+            if 'where' in tokens:
+                where_idx = tokens.index('where')
+                where_data = tokens[1 + where_idx:-1]
+            from_table = tokens[1 + tokens.index('from'):where_idx]
+            where_keys = []
+            where_values = []
+            if where_data:
+                where_data = "".join(where_data)
+                for wd in where_data.split("and"):
+                    wd = re.sub('r[\"\']', '', wd.replace('\'', ''))
+                    key = wd.split("=")[0]
+                    value = wd.split("=")[1]
+                    where_keys.append(key)
+                    where_values.append(value)
+            delete(table_name, key=where_keys, value=where_values)
+            print("[INFO] <sudo> delete data successfully")
+            return
     if len(old_row_time) == 0:
         error(f'db [{db_name}] table [{table_name}] does not exits!')
         return
@@ -551,10 +585,11 @@ db_name = ''
 
 def parse(cmd: str):
     import re
-    tokens = re.split(r"([ ,();])", cmd.lower().strip())
+    tokens = re.split(r"([ ,();=])", cmd.lower().strip())
     tokens = [t for t in tokens if t not in [' ', '', '\n']]
     global db_name
     i = 0
+    if tokens[0] == "sudo": i += 1
     if tokens[i] == 'use':
         db_name = tokens[i + 1]
         ret = select('schema', ['*'], where_key=['db_name'], where_value=[db_name])
@@ -659,4 +694,4 @@ if __name__ == '__main__':
         cmd_list = []
         st = time.time()
         parse(cmd)
-        print('cost', time.time() - st)
+        # print('cost', time.time() - st)
