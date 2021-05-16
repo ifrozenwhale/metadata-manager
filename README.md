@@ -29,6 +29,10 @@
   table_schema,table_name,table_type,engine,table_rows,create_time,auto_increment,update_time,table_collation
   test_db,tasks,base_table,innodb,0,2021-05-05 17:43:18,,2021-05-05 17:43:18,utf8
   ```
+  
+- index表
+
+
 
 ## SQL解析进度
 
